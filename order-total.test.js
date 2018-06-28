@@ -1,27 +1,38 @@
 const orderTotal = require('./order-total');
 
-const emptyFunction = () => {};
-
 // Calls vat API
 it('Calls vatapi.com correctly', () => {
-    let isFakeFetchCalled = false;
-    const fakeFetch = (url) => {
+    const fakeProcess = {
+        'apiKey': 'key123'
+    }
+    const fakeFetch = (url, opts) => {
+        expect(opts.headers.apiKey).toBe('key123');
         expect(url).toBe('https://vatapi.com/v1/country-code-check?code=DE');
         isFakeFetchCalled = true;
+        return Promise.resolve({
+            // data.rates.standard.value
+            json: () => Promise.resolve({
+                rates: {
+                    standard: {
+                        value: 19
+                    }
+                }
+            })
+        })
     }
-    orderTotal(fakeFetch, {
+    return orderTotal(fakeFetch, fakeProcess, {
         country: 'DE',
         items: [
             { name: 'Dragon Waffles', price: 20, quantity: 2 },
         ]
     }).then(result => {
-        expect(isFakeFetchCalled).toBe(true);
+        expect(result).toBe(20 * 2 * 1.19);
     });
 });
 
 // Quantity
 it('Quantity', () => 
-    orderTotal(emptyFunction, {
+    orderTotal(null, null, {
         items: [
             { name: 'Dragon Candy', price: 2, quantity: 3 },
         ]
@@ -29,7 +40,7 @@ it('Quantity', () =>
 
 // No quantity specified
 it('No quantity specified', () => 
-    orderTotal(emptyFunction, {
+    orderTotal(null, null, {
         items: [
             { name: 'Dragon  Food', price: 3 },
         ]
@@ -37,7 +48,7 @@ it('No quantity specified', () =>
 
 // Happy path! (Example 1)
 it('Happy path! (Example 1)', () =>
-    orderTotal(emptyFunction, {
+    orderTotal(null, null, {
         items: [
             { name: 'Dragon Food', price: 8 },
             { name: 'Dragon Cage (small)', price: 800 }
@@ -45,7 +56,7 @@ it('Happy path! (Example 1)', () =>
     }).then(result => expect(result).toBe(808)));
 
 it('Happy path! (Example 2)', () => 
-    orderTotal(emptyFunction, {
+    orderTotal(null, null, {
         items: [
             { name: 'Dragon Collar', price: 20 },
             { name: 'Dragon Chew Toy', price: 40 }
